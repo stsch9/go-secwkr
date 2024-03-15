@@ -1,5 +1,5 @@
 # go-secwkr (simple encryption cli with key rotation)
-
+Do not use in production. It is only a PoC.
 ## Usage
 ```
 Usage:
