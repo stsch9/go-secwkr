@@ -1,1 +1,1 @@
-# go-secwkr
+# go-secwkr (Simple encryption cli with key rotation)
