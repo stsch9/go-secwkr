@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/gtank/ristretto255"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -14,14 +15,6 @@ import (
 )
 
 const r255label = "filekey"
-
-func main() {
-	KeyGen()
-	Encrypt("test", "publickey")
-	KeyRotate()
-	Rekey("test", "factor")
-	Decrypt("test", "secretkey")
-}
 
 func KeyGen() {
 	seed := make([]byte, 64)
@@ -34,22 +27,19 @@ func KeyGen() {
 
 	err := os.WriteFile("secretkey", []byte(hex.EncodeToString(sk.Encode(nil))), 0600)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 
 	err = os.WriteFile("publickey", []byte(hex.EncodeToString(pk.Encode(nil))), 0600)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 }
 
-func KeyRotate() {
+func KeyRotate(keyfile string) {
+	basePath := filepath.Dir(keyfile)
 	// read old secret key
-	data, err := os.ReadFile("secretkey")
-	// if our program was unable to read the file
-	// print out the reason why it can't
+	data, err := os.ReadFile(keyfile)
 	if err != nil {
 		panic(err)
 	}
@@ -77,29 +67,24 @@ func KeyRotate() {
 	factor := ristretto255.NewScalar().Invert(sk)
 	factor.Multiply(s, factor)
 
-	err = os.WriteFile("factor", factor.Encode(nil), 0640)
+	err = os.WriteFile(basePath+"/factor", factor.Encode(nil), 0640)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 
-	err = os.WriteFile("secretkey", []byte(hex.EncodeToString(sk.Encode(nil))), 0600)
+	err = os.WriteFile(keyfile, []byte(hex.EncodeToString(sk.Encode(nil))), 0600)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 
-	err = os.WriteFile("publickey", []byte(hex.EncodeToString(pk.Encode(nil))), 0600)
+	err = os.WriteFile(basePath+"/publickey", []byte(hex.EncodeToString(pk.Encode(nil))), 0600)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 }
 
-func Rekey(source string, factor string) {
-	d, err := os.ReadFile(source + ".encap")
-	// if our program was unable to read the file
-	// print out the reason why it can't
+func Rekey(factor string, source string) {
+	d, err := os.ReadFile(source)
 	if err != nil {
 		panic(err)
 	}
@@ -110,8 +95,6 @@ func Rekey(source string, factor string) {
 	}
 
 	f, err := os.ReadFile(factor)
-	// if our program was unable to read the file
-	// print out the reason why it can't
 	if err != nil {
 		panic(err)
 	}
@@ -123,14 +106,13 @@ func Rekey(source string, factor string) {
 
 	encap.ScalarMult(fac, encap)
 
-	err = os.WriteFile(source+".encap", encap.Encode(nil), 0777)
+	err = os.WriteFile(source, encap.Encode(nil), 0777)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 }
 
-func Encrypt(source string, recipientfile string) {
+func Encrypt(recipientfile string, source string, output string) {
 	// generate ephemeral ristretto255 key pair
 	seed := make([]byte, 64)
 	if _, err := rand.Read(seed); err != nil {
@@ -142,8 +124,6 @@ func Encrypt(source string, recipientfile string) {
 
 	// read recipient Key
 	data, err := os.ReadFile(recipientfile)
-	// if our program was unable to read the file
-	// print out the reason why it can't
 	if err != nil {
 		panic(err)
 	}
@@ -162,8 +142,6 @@ func Encrypt(source string, recipientfile string) {
 	sharedKey := ristretto255.NewElement().ScalarMult(ek, K)
 
 	plaintext, err := os.ReadFile(source)
-	// if our program was unable to read the file
-	// print out the reason why it can't
 	if err != nil {
 		panic(err)
 	}
@@ -189,24 +167,19 @@ func Encrypt(source string, recipientfile string) {
 	}
 
 	// Encrypt the message and append the ciphertext to the nonce.
-	err = os.WriteFile(source+".enc", aead.Seal(nonce, nonce[32:], plaintext, nil), 0777)
-	// handle this error
+	err = os.WriteFile(output, aead.Seal(nonce, nonce[32:], plaintext, nil), 0777)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 
-	err = os.WriteFile(source+".encap", encap.Encode(nil), 0777)
+	err = os.WriteFile(output+".encap", encap.Encode(nil), 0777)
 	if err != nil {
-		// print it out
-		fmt.Println(err)
+		panic(err)
 	}
 }
 
-func Decrypt(source string, secretfile string) {
-	rK, err := os.ReadFile(source + ".encap")
-	// if our program was unable to read the file
-	// print out the reason why it can't
+func Decrypt(secretfile string, source string, output string, encapfile string) {
+	rK, err := os.ReadFile(encapfile)
 	if err != nil {
 		panic(err)
 	}
@@ -217,8 +190,6 @@ func Decrypt(source string, secretfile string) {
 	}
 
 	data, err := os.ReadFile(secretfile)
-	// if our program was unable to read the file
-	// print out the reason why it can't
 	if err != nil {
 		panic(err)
 	}
@@ -235,9 +206,7 @@ func Decrypt(source string, secretfile string) {
 
 	sharedKey := ristretto255.NewElement().ScalarMult(s, K)
 
-	ciphertext, err := os.ReadFile(source + ".enc")
-	// if our program was unable to read the file
-	// print out the reason why it can't
+	ciphertext, err := os.ReadFile(source)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -262,10 +231,13 @@ func Decrypt(source string, secretfile string) {
 		panic(err)
 	}
 
-	// Decrypt the message and check it wasn't tampered with.
 	plaintext, err := aead.Open(nil, nonce[32:], ciphertext, nil)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s\n", plaintext)
+
+	err = os.WriteFile(output, plaintext, 0777)
+	if err != nil {
+		panic(err)
+	}
 }
