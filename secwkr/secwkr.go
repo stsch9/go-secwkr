@@ -1,4 +1,4 @@
-package simplecrypt
+package secwkr
 
 import (
 	"crypto/rand"

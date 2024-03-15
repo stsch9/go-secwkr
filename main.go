@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/stsch9/simple-encrypt/simplecrypt"
+	"github.com/stsch9/secwkr/secwkr"
 )
 
 const usage = `Usage:
-	simplecrypt keygen
-	simplecrypt [-s KEYFILE_PATH] keyrotate
-	simplecrypt [-f FACTOR_FILE_PATH] rekey ENCAP_FILE_PATH
-	simplecrypt [-r RECIPIENT_FILE] encrypt INPUT_FILE OUTPUT_FILE
-	simplecrypt [-s KEYFILE_PATH] [-e ENCAP_FILE_PATH] decrypt INPUT_FILE OUTPUT_FILE
+	secwkr keygen
+	secwkr [-s KEYFILE_PATH] keyrotate
+	secwkr [-f FACTOR_FILE_PATH] rekey ENCAP_FILE_PATH
+	secwkr [-r RECIPIENT_FILE] encrypt INPUT_FILE OUTPUT_FILE
+	secwkr [-s KEYFILE_PATH] [-e ENCAP_FILE_PATH] decrypt INPUT_FILE OUTPUT_FILE
 	
 Options:
 	-s PATH		Path to Secret Key File. Default: secretkey
@@ -52,7 +52,7 @@ func main() {
 	case "decrypt":
 		decryptHandle(*keyFlag, *encapFlag)
 	default:
-		fmt.Println("Run simplecrypt help to show usage.")
+		fmt.Println("Run secwkr help to show usage.")
 		os.Exit(1)
 	}
 
@@ -64,7 +64,7 @@ func keygenHandle() {
 		os.Exit(0)
 	}
 
-	simplecrypt.KeyGen()
+	secwkr.KeyGen()
 }
 
 func keyrotateHandle(keyfile string) {
@@ -78,7 +78,7 @@ func keyrotateHandle(keyfile string) {
 		os.Exit(1)
 	}
 
-	simplecrypt.KeyRotate(keyfile)
+	secwkr.KeyRotate(keyfile)
 }
 
 func rekeyHandle(factorfile string) {
@@ -99,7 +99,7 @@ func rekeyHandle(factorfile string) {
 		os.Exit(1)
 	}
 
-	simplecrypt.Rekey(factorfile, encapfile)
+	secwkr.Rekey(factorfile, encapfile)
 }
 
 func encryptHandle(recipientfile string) {
@@ -121,7 +121,7 @@ func encryptHandle(recipientfile string) {
 		os.Exit(1)
 	}
 
-	simplecrypt.Encrypt(recipientfile, inputfile, flag.Arg(2))
+	secwkr.Encrypt(recipientfile, inputfile, flag.Arg(2))
 	//fmt.Println("\nFile successfully protected")
 
 }
@@ -154,7 +154,7 @@ func decryptHandle(secretfile string, encapfile string) {
 		os.Exit(1)
 	}
 
-	simplecrypt.Decrypt(secretfile, inputfile, flag.Arg(2), encapfile)
+	secwkr.Decrypt(secretfile, inputfile, flag.Arg(2), encapfile)
 	//fmt.Println("\nFile successfully protected")
 
 }
