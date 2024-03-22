@@ -8,9 +8,9 @@ This is a simple encryption cli. It is possible to rotate your key pair. An effi
 A random ristretto255 key pair `(a, A)` is generated.
 
 ### File Encryption
-A ephemeral ristretto255 key `(e, E)` pair is generated for each file. The public recipient key `B` is used to calculate the shared key, where `(b, B)` is the recipient's key pair:
+A ephemeral ristretto255 key `(e, E)` pair is generated for each file. The recipient's public key `B` is used to calculate a shared key, where `(b, B)` is the recipient's key pair:
 ```
-shared_key = ScalarMult(e, B)
+shared_key = e B
 ```
 This `shared_key` is used to calculte the `file_key`:
 ```
@@ -22,11 +22,33 @@ Finally, the file is encrypted with XChaCha20-Poly1305 and the `file_key`:
 ```
 encrypted_file = XChaCha20-Poly1305(nonce=Random(24), plaintext=file, additionalData="")
 ```
+The two random numbers are stored in the encrypted file.
+The ephemeral public key is stored in an extra file, since it changes with key rotation. <br />
 To be honest, ChaCha20-Poly1305 with a fixed nonce would probably suffice, since a random nonce has already been used to create the `file_key`(see [age Spec](https://github.com/C2SP/C2SP/blob/main/age.md)).
 
-### Key Rotation
-tbd
+### File Decryption
+The receiver uses the private key `b` and the ephemeral public key `E` to calculate the `shared_key`.
+```
+shared_key = b E = e B
+```
+With this `shared_key` and the two nonces, the recipient can decrypt the file.
 
+### Key Rotation
+A new random ristretto255 key pair `(b_1, B_1)` is generated. In addition, a so-called `factor` file is created, which contains the scalar product of `b` and the multiplicative inverse of `b_1`:
+```
+factor = b (b_1)^-1
+```
+
+### Rekey
+The ephemeral public key of all files is multiplied by the `factor` generated during key rotation:
+```
+E_1 = factor E
+```
+This allows the recipient to decrypt the files with his new private key `b_1`, since the recipient receives the same `shared_key` as the sender:
+```
+b_1 E_1 = b_1 factor E = b_1 (b (b_1)^-1) E = b E = e B = shared_key
+```
+Since neither the new private key `b_1` nor the old private key `b`can be calculated from the `factor`, the rekey operation can be executed by an untrusted third party.
 
 
 ## Usage
