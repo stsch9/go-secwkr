@@ -54,7 +54,7 @@ Since neither the new private key `b_1` nor the old private key `b`can be calcul
 ## Usage
 ```
 Usage:
-    secwkr keygen
+    	secwkr keygen
 	secwkr [-s KEYFILE_PATH] keyrotate
 	secwkr [-f FACTOR_FILE_PATH] rekey ENCAP_FILE_PATH
 	secwkr [-r RECIPIENT_FILE] encrypt INPUT_FILE OUTPUT_FILE
