@@ -8,7 +8,7 @@ This is a simple encryption cli. It is possible to rotate your key pair. An effi
 A random ristretto255 key pair `(a, A)` is generated.
 
 ### File Encryption
-A ephemeral ristretto255 key `(e, E)` pair is generated for each file. The recipient's public key `B` is used to calculate a shared key, where `(b, B)` is the recipient's key pair:
+A ephemeral ristretto255 key pair `(e, E)` is generated for each file. The recipient's public key `B` is used to calculate a shared key, where `(b, B)` is the recipient's key pair:
 ```
 shared_key = e B
 ```
