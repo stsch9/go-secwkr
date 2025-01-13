@@ -10,9 +10,10 @@ A random ristretto255 key pair `(a, A)` is generated.
 ### File Encryption
 A ephemeral ristretto255 key pair `(e, E)` is generated for each file. The recipient's public key `B` is used to calculate a shared key, where `(b, B)` is the recipient's key pair:
 ```
-shared_key = e B
+shared_key = e * B
 ```
-This `shared_key` is used to calculte the `file_key`:
+where `*` denotes the scalar multiplication over the elliptic curve ristretto255. <br />
+The shared Key `shared_key` is used to calculte the `file_key`:
 ```
 file_key = HKDF(secret=shared_key, salt=nonce, info="filekey")
 ```
@@ -29,26 +30,27 @@ To be honest, ChaCha20-Poly1305 with a fixed nonce would probably suffice, since
 ### File Decryption
 The receiver uses the private key `b` and the ephemeral public key `E` to calculate the `shared_key`.
 ```
-shared_key = b E = e B
+shared_key = b * E = e * B
 ```
 With this `shared_key` and the two nonces, the recipient can decrypt the file.
 
 ### Key Rotation
-A new random ristretto255 key pair `(b_1, B_1)` is generated. In addition, a so-called `factor` file is created, which contains the scalar product of `b` and the multiplicative inverse of `b_1`:
+Suppose the recipient wants to renew his key pair. He generates a new random ristretto255 key pair `(c, C)`. In addition, a so-called `factor` file is created, which contains the scalar product of `b` and the multiplicative inverse of `c`:
 ```
-factor = b (b_1)^-1
+factor = b * c^-1 (mod L)
 ```
+where `L` is L the order of the ristretto255 group: (2^252 + 27742317777372353535851937790883648493).
 
 ### Rekey
 The ephemeral public key of all files is multiplied by the `factor` generated during key rotation:
 ```
-E_1 = factor E
+F = factor * E
 ```
-This allows the recipient to decrypt the files with his new private key `b_1`, since the recipient receives the same `shared_key` as the sender:
+This allows the recipient to decrypt the files with his new private key `c`, since the recipient receives the same `shared_key` as the sender:
 ```
-b_1 E_1 = b_1 factor E = b_1 (b (b_1)^-1) E = b E = e B = shared_key
+c * F = c * (factor * E) = c * ((b * c^-1) * E) = b * E = e * B = shared_key
 ```
-Since neither the new private key `b_1` nor the old private key `b`can be calculated from the `factor`, the rekey operation can be executed by an untrusted third party.
+Since neither the new private key `c` nor the old private key `b`can be calculated from the `factor`, the rekey operation can be executed by an untrusted third party.
 
 
 ## Usage
